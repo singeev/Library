@@ -5,6 +5,8 @@ import static org.junit.Assert.*;
 import static com.singeev.library.app.commontests.category.CategoryForTestsRepository.*;
 
 import com.singeev.library.app.category.model.Category;
+import com.singeev.library.app.commontests.utils.DBCommand;
+import com.singeev.library.app.commontests.utils.DBCommandTransactionalExecutor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,6 +22,7 @@ public class CategoryRepositoryUTest {
     private EntityManagerFactory entityManagerFactory;
     private EntityManager entityManager;
     private CategoryRepository categoryRepository;
+    private DBCommandTransactionalExecutor dbCommandTransactionalExecutor;
 
     @Before
     public void initTestCase() {
@@ -27,6 +30,7 @@ public class CategoryRepositoryUTest {
         entityManager = entityManagerFactory.createEntityManager();
         categoryRepository = new CategoryRepository();
         categoryRepository.entityManager = entityManager;
+        dbCommandTransactionalExecutor = new DBCommandTransactionalExecutor(entityManager);
     }
 
     @After
@@ -38,18 +42,9 @@ public class CategoryRepositoryUTest {
     @Test
     public void addCategoryAndFindIt() {
         String categoryName = "Java";
-        Long categoryAddedID = null;
-        try {
-            entityManager.getTransaction().begin();
-            categoryAddedID = categoryRepository.add(create(categoryName)).getId();
-            assertThat(categoryAddedID, is(notNullValue()));
-            entityManager.getTransaction().commit();
-            entityManager.clear();
-        } catch (Exception e) {
-            fail("I wasn't expect this exception!");
-            e.printStackTrace();
-            entityManager.getTransaction().rollback();
-        }
+        Long categoryAddedID = dbCommandTransactionalExecutor.executeCommand(() -> categoryRepository.add(create(categoryName)).getId());
+
+        assertThat(categoryAddedID, is(notNullValue()));
 
         Category category = categoryRepository.findByID(categoryAddedID);
         assertThat(category, is(notNullValue()));
